@@ -34,9 +34,11 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await ApiService.instance.login(emailOrPhone, password);
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/beranda');
+      Navigator.pushNamedAndRemoveUntil(context, '/beranda', (route) => false);
     } on ApiException catch (error) {
       _showMessage(error.message);
+    } catch (error) {
+      _showMessage('Terjadi kesalahan: $error');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -45,7 +47,13 @@ class _LoginPageState extends State<LoginPage> {
   void _showMessage(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   @override

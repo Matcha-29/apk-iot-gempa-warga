@@ -14,28 +14,53 @@ class ActivatePage extends StatefulWidget {
 
 class _ActivatePageState extends State<ActivatePage> {
   final _activationCodeController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _passwordConfirmationController = TextEditingController();
   bool _isLoading = false;
 
   @override
   void dispose() {
     _activationCodeController.dispose();
+    _passwordController.dispose();
+    _passwordConfirmationController.dispose();
     super.dispose();
   }
 
   Future<void> _activate() async {
     final code = _activationCodeController.text.trim();
+    final password = _passwordController.text;
+    final passwordConfirmation = _passwordConfirmationController.text;
+
     if (code.isEmpty) {
       _showMessage('Masukkan kode aktivasi terlebih dahulu.');
+      return;
+    }
+    if (password.isEmpty) {
+      _showMessage('Masukkan kata sandi baru.');
+      return;
+    }
+    if (password.length < 8) {
+      _showMessage('Kata sandi minimal 8 karakter.');
+      return;
+    }
+    if (password != passwordConfirmation) {
+      _showMessage('Konfirmasi kata sandi tidak cocok.');
       return;
     }
 
     setState(() => _isLoading = true);
     try {
-      await ApiService.instance.aktivasiAkun(code);
+      await ApiService.instance.aktivasiAkun(
+        kodeAktivasi: code,
+        password: password,
+        passwordConfirmation: passwordConfirmation,
+      );
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/beranda');
+      Navigator.pushNamedAndRemoveUntil(context, '/beranda', (route) => false);
     } on ApiException catch (error) {
       _showMessage(error.message);
+    } catch (error) {
+      _showMessage('Terjadi kesalahan: $error');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -44,7 +69,13 @@ class _ActivatePageState extends State<ActivatePage> {
   void _showMessage(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   @override
@@ -85,11 +116,19 @@ class _ActivatePageState extends State<ActivatePage> {
             const SizedBox(height: 20),
             label('Kata sandi baru'),
             const SizedBox(height: 8),
-            const Field(hint: 'Minimal 8 karakter', obscure: true),
+            Field(
+              hint: 'Minimal 8 karakter',
+              obscure: true,
+              controller: _passwordController,
+            ),
             const SizedBox(height: 20),
             label('Ulangi kata sandi'),
             const SizedBox(height: 8),
-            const Field(hint: 'Ketik ulang kata sandi', obscure: true),
+            Field(
+              hint: 'Ketik ulang kata sandi',
+              obscure: true,
+              controller: _passwordConfirmationController,
+            ),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(18),

@@ -21,6 +21,8 @@ class _BerandaPageState extends State<BerandaPage> {
   late final ApiState _apiState;
   bool _dangerRouteActive = false;
   bool _dangerAlertShownForCurrentEpisode = false;
+  bool _ujiCobaRouteActive = false;
+  bool _terkendaliRouteActive = false;
 
   @override
   void initState() {
@@ -33,11 +35,46 @@ class _BerandaPageState extends State<BerandaPage> {
 
   void _handleStatusChange() {
     final status = _apiState.areaStatus;
-    if (status?.isSafe ?? false) {
+    if (status == null) return;
+
+    if (status.isSafe) {
       _dangerAlertShownForCurrentEpisode = false;
       return;
     }
-    if (!(status?.isDanger ?? false) ||
+
+    if (status.isUjiCoba && !_ujiCobaRouteActive) {
+      _ujiCobaRouteActive = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          _ujiCobaRouteActive = false;
+          return;
+        }
+        unawaited(
+          Navigator.of(context).pushNamed<void>('/uji-coba').then((_) {
+            _ujiCobaRouteActive = false;
+          }),
+        );
+      });
+      return;
+    }
+
+    if (status.isTerkendali && !_terkendaliRouteActive) {
+      _terkendaliRouteActive = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          _terkendaliRouteActive = false;
+          return;
+        }
+        unawaited(
+          Navigator.of(context).pushNamed<void>('/kembali-aman').then((_) {
+            _terkendaliRouteActive = false;
+          }),
+        );
+      });
+      return;
+    }
+
+    if (!status.isDanger ||
         _dangerRouteActive ||
         _dangerAlertShownForCurrentEpisode) {
       return;
@@ -84,51 +121,18 @@ class _BerandaPageState extends State<BerandaPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: IndexedStack(index: selectedIndex, children: tabs),
-      floatingActionButton: selectedIndex == 0
-          ? PopupMenuButton<String>(
-              tooltip: 'Simulasi kondisi',
-              onSelected: (value) => Navigator.pushNamed(context, value),
-              itemBuilder: (context) => const [
-                PopupMenuItem(
-                  value: '/gempa-terdeteksi',
-                  child: Text('Simulasi gempa terdeteksi'),
-                ),
-                PopupMenuItem(
-                  value: '/pemantauan-nonaktif',
-                  child: Text('Simulasi pemantauan nonaktif'),
-                ),
-                PopupMenuItem(
-                  value: '/uji-coba',
-                  child: Text('Buka uji coba sistem'),
-                ),
-              ],
-              child: Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: .88),
-                  borderRadius: BorderRadius.circular(21),
-                ),
-                child: const Icon(
-                  Icons.play_arrow,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-            )
-          : null,
-      bottomNavigationBar: SizedBox(
-        height: 70,
+      bottomNavigationBar: SafeArea(
+        top: false,
         child: BottomNavigationBar(
           currentIndex: selectedIndex,
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
           selectedItemColor: green,
           unselectedItemColor: const Color(0xFF6B7280),
-          selectedIconTheme: const IconThemeData(size: 26),
-          unselectedIconTheme: const IconThemeData(size: 26),
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
+          selectedIconTheme: const IconThemeData(size: 24),
+          unselectedIconTheme: const IconThemeData(size: 24),
+          selectedFontSize: 11,
+          unselectedFontSize: 11,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
           onTap: (index) => setState(() => selectedIndex = index),
           items: const [

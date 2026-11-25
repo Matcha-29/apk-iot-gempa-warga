@@ -177,40 +177,50 @@ class AppBottomNavigation extends StatelessWidget {
       (icon: Icons.person_outline, label: 'Profil', route: '/profile'),
     ];
 
-    return Container(
-      height: 68,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
-      ),
-      child: Row(
-        children: List.generate(items.length, (index) {
-          final item = items[index];
-          final selected = index == selectedIndex;
-          return Expanded(
-            child: InkWell(
-              onTap: () => Navigator.pushReplacementNamed(context, item.route),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    item.icon,
-                    size: 26,
-                    color: selected ? green : const Color(0xFF6B7280),
-                  ),
-                  Text(
-                    item.label,
-                    style: TextStyle(
-                      fontSize: 12,
+    return SafeArea(
+      top: false,
+      child: Container(
+        height: 62,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
+        ),
+        child: Row(
+          children: List.generate(items.length, (index) {
+            final item = items[index];
+            final selected = index == selectedIndex;
+            return Expanded(
+              child: InkWell(
+                onTap: () => Navigator.pushReplacementNamed(context, item.route),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      item.icon,
+                      size: 22,
                       color: selected ? green : const Color(0xFF6B7280),
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        item.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: selected ? green : const Color(0xFF6B7280),
+                          fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        }),
+            );
+          }),
+        ),
       ),
     );
   }

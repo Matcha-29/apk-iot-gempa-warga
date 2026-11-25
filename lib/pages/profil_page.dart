@@ -1,14 +1,86 @@
 import 'package:flutter/material.dart';
 
-import '../utils/dummy_data.dart';
+import '../services/api_service.dart';
 import '../widgets/common_widgets.dart';
 
-class ProfilPage extends StatelessWidget {
+class ProfilPage extends StatefulWidget {
   const ProfilPage({super.key, this.showBottomNavigation = true});
   final bool showBottomNavigation;
 
   @override
+  State<ProfilPage> createState() => _ProfilPageState();
+}
+
+class _ProfilPageState extends State<ProfilPage> {
+  Map<String, dynamic>? _user;
+  bool _notifDarurat = true;
+  bool _bunyiGetar = true;
+  int _selectedTextSize = 1; // 0: Kecil, 1: Sedang, 2: Besar
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final user = await ApiService.instance.getSessionUser();
+    if (mounted) {
+      setState(() => _user = user);
+    }
+  }
+
+  String _formatPhone(String raw) {
+    if (raw.length >= 8) {
+      return '${raw.substring(0, 4)}-••••-${raw.substring(raw.length - 4)}';
+    }
+    return raw.isNotEmpty ? raw : '0812-••••-5588';
+  }
+
+  Future<void> _handleLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Keluar dari Akun'),
+        content: const Text(
+          'Apakah Anda yakin ingin keluar? Anda perlu masuk kembali untuk mengakses fitur aplikasi.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB42318),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Keluar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await ApiService.instance.logout();
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final user = _user;
+    final String nama = user?['nama']?.toString() ??
+        user?['name']?.toString() ??
+        'Budi Santoso';
+    final String rawPhone = user?['no_telepon']?.toString() ??
+        user?['phone']?.toString() ??
+        '081234565588';
+    final String phoneMasked = _formatPhone(rawPhone);
+    final String initial = nama.isNotEmpty ? nama[0].toUpperCase() : 'B';
+
     return MobileFrame(
       child: Column(
         children: [
@@ -20,31 +92,37 @@ class ProfilPage extends StatelessWidget {
                 children: [
                   const Text(
                     'Profil',
-                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF111827),
+                    ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 18),
+                  // KARTU PROFIL USER
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(18),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF5F7F6),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
                     ),
                     child: Row(
                       children: [
                         Container(
-                          width: 56,
-                          height: 56,
+                          width: 48,
+                          height: 48,
                           decoration: const BoxDecoration(
-                            color: green,
+                            color: Color(0xFF1E293B),
                             shape: BoxShape.circle,
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Text(
-                              'MY',
-                              style: TextStyle(
+                              initial,
+                              style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 18,
+                                fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -54,28 +132,21 @@ class ProfilPage extends StatelessWidget {
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
+                            children: [
                               Text(
-                                DummyUser.name,
-                                style: TextStyle(
+                                nama,
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
+                                  color: Color(0xFF111827),
                                 ),
                               ),
-                              SizedBox(height: 5),
+                              const SizedBox(height: 3),
                               Text(
-                                DummyUser.phone,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Color(0xFF55615A),
-                                ),
-                              ),
-                              SizedBox(height: 3),
-                              Text(
-                                '${DummyUser.rt} / ${DummyUser.rw}',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Color(0xFF55615A),
+                                '$phoneMasked · RT 01',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF6B7280),
                                 ),
                               ),
                             ],
@@ -84,17 +155,17 @@ class ProfilPage extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
-                            vertical: 7,
+                            vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFDFF3E7),
+                            color: const Color(0xFFDCFCE7),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Text(
-                            DummyUser.status,
+                            'Terverifikasi',
                             style: TextStyle(
-                              fontSize: 13,
-                              color: green,
+                              color: Color(0xFF166534),
+                              fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -102,98 +173,174 @@ class ProfilPage extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Pengaturan peringatan',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  _setting(
-                    Icons.notifications_active_outlined,
-                    'Notifikasi darurat',
-                    'Wajib aktif agar peringatan sampai',
-                    true,
-                  ),
-                  _setting(
-                    Icons.vibration,
-                    'Bunyi dan getar',
-                    'Aktif saat ada peringatan darurat',
-                    true,
-                  ),
-                  _setting(
-                    Icons.location_on_outlined,
-                    'Izin lokasi',
-                    'Dipakai untuk melaporkan kejadian',
-                    false,
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Tampilan',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 24),
+                  // SECTION PENGATURAN PERINGATAN
+                  _sectionTitle('PENGATURAN PERINGATAN'),
+                  const SizedBox(height: 10),
                   Container(
-                    padding: const EdgeInsets.all(18),
+                    width: double.infinity,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF5F7F6),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          'Ukuran teks',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      children: [
+                        _switchItem(
+                          title: 'Notifikasi darurat',
+                          subtitle: 'Wajib aktif agar peringatan sampai',
+                          value: _notifDarurat,
+                          onChanged: (val) =>
+                              setState(() => _notifDarurat = val),
                         ),
-                        SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Text('A', style: TextStyle(fontSize: 14)),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: LinearProgressIndicator(
-                                value: 0.5,
-                                minHeight: 6,
+                        const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                        _switchItem(
+                          title: 'Bunyi dan getar',
+                          subtitle: 'Bunyi keras dan getar bersamaan',
+                          value: _bunyiGetar,
+                          onChanged: (val) =>
+                              setState(() => _bunyiGetar = val),
+                        ),
+                        const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Izin lokasi',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF111827),
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'Hanya dipakai saat Anda melapor',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF6B7280),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            SizedBox(width: 12),
-                            Text('A', style: TextStyle(fontSize: 20)),
-                          ],
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'Bahasa',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 5),
-                        Text(
-                          'Bahasa Indonesia',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF55615A),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFDCFCE7),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text(
+                                  'Diizinkan',
+                                  style: TextStyle(
+                                    color: Color(0xFF166534),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 24),
+                  // SECTION TAMPILAN
+                  _sectionTitle('TAMPILAN'),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                    ),
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Ukuran teks',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF111827),
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  _textSizeBtn('A', 13, 0),
+                                  const SizedBox(width: 4),
+                                  _textSizeBtn('A', 16, 1),
+                                  const SizedBox(width: 4),
+                                  _textSizeBtn('A', 20, 2),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: const [
+                              Text(
+                                'Bahasa',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF111827),
+                                ),
+                              ),
+                              Text(
+                                'Bahasa Indonesia',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF6B7280),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  // TOMBOL KELUAR
                   SizedBox(
                     width: double.infinity,
-                    height: 54,
+                    height: 50,
                     child: OutlinedButton(
-                      onPressed: () =>
-                          Navigator.pushReplacementNamed(context, '/login'),
+                      onPressed: _handleLogout,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFFB42318),
-                        side: const BorderSide(color: Color(0xFFB42318)),
+                        side: const BorderSide(
+                          color: Color(0xFFB42318),
+                          width: 1.5,
+                        ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: const Text(
@@ -205,36 +352,41 @@ class ProfilPage extends StatelessWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
           ),
-          if (showBottomNavigation) const AppBottomNavigation(selectedIndex: 3),
+          if (widget.showBottomNavigation)
+            const AppBottomNavigation(selectedIndex: 3),
         ],
       ),
     );
   }
 
-  Widget _setting(IconData icon, String title, String subtitle, bool active) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F7F6),
-        borderRadius: BorderRadius.circular(16),
+  Widget _sectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+        color: Color(0xFF6B7280),
+        letterSpacing: 0.8,
       ),
+    );
+  }
+
+  Widget _switchItem({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icon, size: 28, color: green),
-          ),
-          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,28 +394,54 @@ class ProfilPage extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF111827),
                   ),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 2),
                 Text(
                   subtitle,
                   style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF55615A),
+                    fontSize: 13,
+                    color: Color(0xFF6B7280),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          Icon(
-            active ? Icons.toggle_on : Icons.toggle_off,
-            size: 42,
-            color: active ? green : const Color(0xFF9CA3AF),
+          Switch(
+            value: value,
+            activeThumbColor: const Color(0xFF15803D),
+            onChanged: onChanged,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _textSizeBtn(String label, double fontSize, int index) {
+    final active = _selectedTextSize == index;
+    return InkWell(
+      onTap: () => setState(() => _selectedTextSize = index),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: active ? const Color(0xFF111827) : const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+              color: active ? Colors.white : const Color(0xFF4B5563),
+            ),
+          ),
+        ),
       ),
     );
   }
